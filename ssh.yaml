@@ -1,0 +1,37 @@
+---
+- name: Mitigação da CVE-2023-48795 em servidores SSH
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Atualizar pacotes do sistema (opcional, caso não possa atualizar o SSH)
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Desabilitar cifras vulneráveis no SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Ciphers'
+        line: 'Ciphers aes256-ctr,aes192-ctr,aes128-ctr'
+        state: present
+
+    - name: Configurar algoritmos de troca de chaves seguros
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^KexAlgorithms'
+        line: 'KexAlgorithms curve25519-sha256,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521'
+        state: present
+
+    - name: Restringir o acesso SSH a endereços IP confiáveis (opcional)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AllowUsers'
+        line: 'AllowUsers diego@192.168.1.*'
+        state: present
+
+    - name: Reiniciar o serviço SSH para aplicar as configurações
+      service:
+        name: ssh
+        state: restarted
+        enabled: yes
